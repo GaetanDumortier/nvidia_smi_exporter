@@ -1,20 +1,14 @@
 # nvidia_smi_exporter
 
-nvidia-smi metrics exporter for Prometheus
+nvidia-smi metrics exporter for Prometheus. Modified to include average power draw (Watt) as well.
+Fixed metrics endpoint throwing invalid character in float error.
 
 ## Build
 ```
 > go build -v nvidia_smi_exporter
 ```
 
-## Run
-```
-> ./nvidia_smi_exporter [<port>]
-```
-Default port is 9101
-
-
-### localhost:9101/metrics
+### Example output of /metrics endpoint
 ```
 temperature_gpu{gpu="TITAN X (Pascal)[0]"} 41
 utilization_gpu{gpu="TITAN X (Pascal)[0]"} 0
@@ -42,16 +36,10 @@ memory_free{gpu="TITAN X (Pascal)[3]"} 536
 memory_used{gpu="TITAN X (Pascal)[3]"} 11653
 ```
 
-### Exact command
-```
-nvidia-smi --query-gpu=name,index,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used --format=csv,noheader,nounits
-```
-
 ### Prometheus example config
 
 ```
-- job_name: "gpu_exporter"
+- job_name: "nvidia_exporter"
   static_configs:
   - targets: ['localhost:9101']
 ```
-
