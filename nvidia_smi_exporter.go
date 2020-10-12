@@ -9,16 +9,13 @@ import (
     "os"
     "os/exec"
     "strings"
+    "strconv"
 )
-
-
-// name, index, temperature.gpu, utilization.gpu,
-// utilization.memory, memory.total, memory.free, memory.used
 
 func metrics(response http.ResponseWriter, request *http.Request) {
     out, err := exec.Command(
         "nvidia-smi",
-        "--query-gpu=name,index,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used",
+        "--query-gpu=name,index,count,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used,power.draw",
         "--format=csv,noheader,nounits").Output()
 
     if err != nil {
@@ -36,20 +33,27 @@ func metrics(response http.ResponseWriter, request *http.Request) {
     }
 
     metricList := []string {
-        "temperature.gpu", "utilization.gpu",
-        "utilization.memory", "memory.total", "memory.free", "memory.used"}
+        "count",
+        "temperature.gpu",
+        "utilization.gpu",
+        "utilization.memory", "memory.total", "memory.free", "memory.used", "power.draw"}
 
     result := ""
     for _, row := range records {
         name := fmt.Sprintf("%s[%s]", row[0], row[1])
         for idx, value := range row[2:] {
-            result = fmt.Sprintf(
-                "%s%s{gpu=\"%s\"} %s\n", result,
-                metricList[idx], name, value)
+            floatVal, _ := strconv.ParseFloat(value, 64)
+
+			result = fmt.Sprintf(
+				"%s%s{gpu=\"%s\"} %.2f\n",
+				result,
+				strings.Replace(metricList[idx], ".", "_", -1),
+				strings.Replace(name, ".", "_", -1),
+				floatVal)
         }
     }
-
-    fmt.Fprintf(response, strings.Replace(result, ".", "_", -1))
+	
+	fmt.Fprintf(response, result)
 }
 
 func main() {
