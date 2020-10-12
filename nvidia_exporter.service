@@ -1,0 +1,12 @@
+[Unit]
+Description=Nvidia SMI Exporter
+Wants=network-online.target
+After=network-online.target multi-user.target
+
+[Service]
+User=prometheus
+Group=prometheus
+ExecStart=/cluster/monitoring/exporters/nvidia_exporter/nvidia_exporter
+
+[Install]
+WantedBy=default.target
