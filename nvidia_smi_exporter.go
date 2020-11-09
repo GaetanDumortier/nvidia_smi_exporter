@@ -13,10 +13,8 @@ import (
 )
 
 const (
-	GpuLostOutput    = "GPU is lost"        // Substring to look for in output when GPU is broken
-	GpuMetric        = "nvidia_smi_failure" // Metrics name
-	GpuLost          = "gpu_lost"           // Metrics value when gpu is lost/broken
-	NvidiaSmiFailure = "nvidia-smi_failure" // Metrics value when nvidia-smi command failed
+	GpuLostOutput = "GPU is lost" // Substring to look for in output when GPU is broken
+	GpuMetric     = "gpu_lost"    // Metrics name
 )
 
 func metrics(response http.ResponseWriter, request *http.Request) {
@@ -31,10 +29,11 @@ func metrics(response http.ResponseWriter, request *http.Request) {
 		// Check the output of nvidia-smi for "gpu is lost" to determine GPU failures
 		if strings.Contains(outStr, strings.ToLower(GpuLostOutput)) {
 			fmt.Println("ALERT: nvidia-smi reports a GPU is lost/broken")
-			result = fmt.Sprintf("%s=%s", GpuMetric, GpuLost)
-		} else {
-			fmt.Println("ALERT: Error while running nvidia-smi command!")
-			result = fmt.Sprintf("%s=%s", GpuMetric, NvidiaSmiFailure)
+			result = fmt.Sprintf(
+				"%s%s %.0f\n",
+				result,
+				GpuMetric,
+				1.0)
 		}
 		// fmt.Printf("%s\n", err)
 		fmt.Fprintf(response, result)
