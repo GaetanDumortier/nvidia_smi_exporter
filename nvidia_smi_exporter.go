@@ -12,7 +12,10 @@ import (
 	"strings"
 )
 
-const GpuLostOutput = "GPU is lost"
+const (
+	GpuLostOutput = "GPU is lost"
+	GpuMetric     = "nvidia_smi_failure" // gpu_lost or smi_failure
+)
 
 func metrics(response http.ResponseWriter, request *http.Request) {
 	out, err := exec.Command(
@@ -20,8 +23,17 @@ func metrics(response http.ResponseWriter, request *http.Request) {
 		"--query-gpu=name,index,count,temperature.gpu,utilization.gpu,utilization.memory,memory.total,memory.free,memory.used,power.draw",
 		"--format=csv,noheader,nounits").Output()
 	outStr := strings.ToLower(string(out))
+	result := ""
 
 	if err != nil {
+		// Check the output of nvidia-smi for "gpu is lost" to determine GPU failures
+		if strings.Contains(outStr, strings.ToLower(GpuLostOutput)) {
+			fmt.Println("ALERT: nvidia-smi reports a GPU is lost/broken")
+			result = fmt.Sprintf("%s=%s", GpuMetric, "gpu_lost")
+		} else {
+			fmt.Println("ALERT: Error while running nvidia-smi command!")
+			result = fmt.Sprintf("%s=%s", GpuMetric, "smi_failure")
+		}
 		fmt.Printf("%s\n", err)
 		return
 	}
@@ -41,13 +53,7 @@ func metrics(response http.ResponseWriter, request *http.Request) {
 		"utilization.gpu",
 		"utilization.memory", "memory.total", "memory.free", "memory.used", "power.draw"}
 
-	result := ""
-	// Check the output of nvidia-smi for "gpu is lost" to determine GPU failures
-	if strings.Contains(outStr, strings.ToLower(GpuLostOutput)) {
-		fmt.Println("ALERT: nvidia-smi reports a GPU is lost/broken")
-		result = "{gpu_failure=true}"
-		return
-	}
+	result = ""
 	for _, row := range records {
 		name := fmt.Sprintf("%s[%s]", row[0], row[1])
 		for idx, value := range row[2:] {
